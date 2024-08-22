@@ -11,6 +11,7 @@
 #include <numeric>
 #include <unordered_set>
 #include <random>
+#include <cassert>
 
 
 #include <cuda.h>
@@ -20,6 +21,9 @@
 #include <cusparse.h>
 
 #include <cub/cub.cuh>
+
+#include "colors.h"
+
 
 #define CUDA_CHECK(call) {                                                 \
     cudaError_t err = call;                                                \
@@ -38,6 +42,8 @@
         exit(EXIT_FAILURE);                                          \
     }                                                                \
 } while(0)
+
+#define EPS 1e-3
 
 namespace testing {
 
@@ -212,14 +218,14 @@ void measure_gflops(const char * label, size_t flops)
 void print_time(const char * label)
 {
     std::string label_str(label);
-    std::cout<<"["<<label_str<<"]: "<<times[label_str]/1e3<<"s"<<std::endl;
+    std::cout<<BRIGHT_RED<<"["<<label_str<<"]: "<<times[label_str]/1e3<<"s"<<RESET<<std::endl;
 }
 
 
 void print_gflops(const char * label)
 {
     std::string label_str(label);
-    std::cout<<"["<<label_str<<"]: "<<gflops[label_str]<<" gflops/s"<<std::endl;
+    std::cout<<BRIGHT_BLUE<<"["<<label_str<<"]: "<<gflops[label_str]<<" gflops/s"<<RESET<<std::endl;
 }
 
 
