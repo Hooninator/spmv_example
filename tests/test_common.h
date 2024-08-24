@@ -43,7 +43,7 @@
     }                                                                \
 } while(0)
 
-#define EPS 1e-3
+#define EPS 1e-8
 
 namespace testing {
 
@@ -58,18 +58,18 @@ std::mt19937 gen(rd());
 
 template <typename T>
 void init_random_buffer(std::vector<T>& buf,
-                        const int32_t lower, 
-                        const int32_t upper)
+                        const int64_t lower, 
+                        const int64_t upper)
 {
     std::uniform_real_distribution<T> distr(lower, upper);
     std::generate(buf.begin(), buf.end(), [&](){return distr(gen);}); 
 }
 
-void init_random_buffer(std::vector<uint32_t>& buf,
-                        const int32_t lower, 
-                        const int32_t upper)
+void init_random_buffer(std::vector<int64_t>& buf,
+                        const int64_t lower, 
+                        const int64_t upper)
 {
-    std::uniform_int_distribution<uint32_t> distr(lower, upper);
+    std::uniform_int_distribution<uint64_t> distr(lower, upper);
     std::generate(buf.begin(), buf.end(), [&](){return distr(gen);}); 
 }
 
@@ -106,21 +106,21 @@ struct RandomCsrInitializer
              const size_t n,
              const size_t nnz,
              std::vector<T>& vals,
-             std::vector<uint32_t>& colinds,
-             std::vector<uint32_t>& rowptrs)
+             std::vector<int64_t>& colinds,
+             std::vector<int64_t>& rowptrs)
     {
         init_random_buffer(vals, -1e5, 1e5);
         init_random_buffer(colinds, 0, n);
 
-        std::unordered_set<uint32_t> found;
+        std::unordered_set<int64_t> found;
         found.reserve(m);
 
-        std::uniform_int_distribution<uint32_t> distr(1, n);
+        std::uniform_int_distribution<int64_t> distr(1, n);
 
         rowptrs[0] = 0;
         size_t count = 1;
         while (count < m) {
-            uint32_t idx = distr(gen);
+            int64_t idx = distr(gen);
             if (found.find(idx)==found.end()) {
                 found.insert(idx);
                 rowptrs[count] = idx;
@@ -140,25 +140,25 @@ void init_sparse_mat_csr(const size_t m,
                          const size_t n,
                          const size_t nnz,
                          T ** d_vals,
-                         uint32_t ** d_colinds,
-                         uint32_t ** d_rowptrs,
+                         int64_t ** d_colinds,
+                         int64_t ** d_rowptrs,
                          Initializer initializer)
 {
     std::vector<T> h_vals(nnz);
-    std::vector<uint32_t> h_colinds(nnz);
-    std::vector<uint32_t> h_rowptrs(m+1);
+    std::vector<int64_t> h_colinds(nnz);
+    std::vector<int64_t> h_rowptrs(m+1);
 
     initializer.init(m, n, nnz, h_vals, h_colinds, h_rowptrs);
 
     CUDA_CHECK(cudaMalloc(d_vals, sizeof(T)*nnz));
-    CUDA_CHECK(cudaMalloc(d_colinds, sizeof(T)*nnz));
-    CUDA_CHECK(cudaMalloc(d_rowptrs, sizeof(T)*(m+1)));
+    CUDA_CHECK(cudaMalloc(d_colinds, sizeof(int64_t)*nnz));
+    CUDA_CHECK(cudaMalloc(d_rowptrs, sizeof(int64_t)*(m+1)));
 
     CUDA_CHECK(cudaMemcpy(*d_vals, h_vals.data(), sizeof(T)*nnz,
                                 cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemcpy(*d_colinds, h_colinds.data(), sizeof(uint32_t)*nnz,
+    CUDA_CHECK(cudaMemcpy(*d_colinds, h_colinds.data(), sizeof(int64_t)*nnz,
                                 cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemcpy(*d_rowptrs, h_rowptrs.data(), sizeof(uint32_t)*(m+1),
+    CUDA_CHECK(cudaMemcpy(*d_rowptrs, h_rowptrs.data(), sizeof(int64_t)*(m+1),
                                 cudaMemcpyHostToDevice));
 }
 

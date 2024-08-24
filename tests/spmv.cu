@@ -19,14 +19,14 @@
 using namespace testing;
 using namespace gasp;
 
-template <typename SR, typename D, typename I>
+template <typename SR, typename Matrix, typename D>
 void check_correctness(const size_t m,
                         const size_t n,
                         const size_t nnz,
                         cusparseSpMatDescr_t& A,
                         cusparseDnVecDescr_t& x, 
                         cusparseDnVecDescr_t& y, 
-                        GaspCsr<D,I>& gasp_A,
+                        Matrix & gasp_A,
                         D * d_x, D * d_y)
 {
     cusparseHandle_t cusparseHandle;
@@ -43,7 +43,7 @@ void check_correctness(const size_t m,
                                             &alpha, A, x,
                                             &beta, y,
                                             CUDA_R_32F,
-                                            CUSPARSE_SPMV_ALG_DEFAULT,
+                                            CUSPARSE_SPMV_CSR_ALG1,
                                             &buf_size));
 
     CUDA_CHECK(cudaMalloc(&buf, buf_size));
@@ -52,7 +52,7 @@ void check_correctness(const size_t m,
                                 &alpha, A, x,
                                 &beta, y,
                                 CUDA_R_32F,
-                                CUSPARSE_SPMV_ALG_DEFAULT,
+                                CUSPARSE_SPMV_CSR_ALG1,
                                 buf));
 
     CUDA_CHECK(cudaDeviceSynchronize());
@@ -61,18 +61,34 @@ void check_correctness(const size_t m,
     D * h_correct = new D[m];
     CUDA_CHECK(cudaMemcpy(h_correct, d_y, sizeof(D)*m, cudaMemcpyDeviceToHost));
 
+
+
     CUDA_CHECK(cudaMemset(d_y, 0, sizeof(D)*m));
 
-    SpMV_host<PlusTimesSemiring<float>, float, uint32_t>(gasp_A, d_x, d_y);
+    SpMV_host<SpMVWarp<PlusTimesSemiring<float>>>(gasp_A, d_x, d_y);
     CUDA_CHECK(cudaDeviceSynchronize());
 
     D * h_computed = new D[m];
     CUDA_CHECK(cudaMemcpy(h_computed, d_y, sizeof(D)*m, cudaMemcpyDeviceToHost));
 
-    for (int i=0; i<m; i++) {
+    for (size_t i=0; i<m; i++) {
         assert(fabs((h_computed[i] - h_correct[i])) < EPS);
     }
-    std::cout<<BRIGHT_GREEN<<"Correctness for SpMV passed!"<<RESET<<std::endl;
+    std::cout<<BRIGHT_GREEN<<"Correctness for warp SpMV passed!"<<RESET<<std::endl;
+
+
+
+    CUDA_CHECK(cudaMemset(d_y, 0, sizeof(D)*m));
+
+    SpMV_host<SpMVScalar<PlusTimesSemiring<float>>>(gasp_A, d_x, d_y);
+    CUDA_CHECK(cudaDeviceSynchronize());
+
+    CUDA_CHECK(cudaMemcpy(h_computed, d_y, sizeof(D)*m, cudaMemcpyDeviceToHost));
+
+    for (size_t i=0; i<m; i++) {
+        assert(fabs((h_computed[i] - h_correct[i])) < EPS);
+    }
+    std::cout<<BRIGHT_GREEN<<"Correctness for scalar SpMV passed!"<<RESET<<std::endl;
 
     CUSPARSE_CHECK(cusparseDestroy(cusparseHandle));
 
@@ -92,7 +108,7 @@ int main(int argc, char ** argv)
     const std::string action(argv[5]);
 
     float * d_vals, * d_x, * d_y;
-    uint32_t * d_colinds, * d_rowptrs;
+    int64_t * d_colinds, * d_rowptrs;
 
     init_sparse_mat_csr<float, RandomCsrInitializer>
                         (m, n, nnz, 
@@ -112,16 +128,15 @@ int main(int argc, char ** argv)
                                      d_rowptrs,
                                      d_colinds,
                                      d_vals,
-                                     CUSPARSE_INDEX_32I,
-                                     CUSPARSE_INDEX_32I,
+                                     CUSPARSE_INDEX_64I,
+                                     CUSPARSE_INDEX_64I,
                                      CUSPARSE_INDEX_BASE_ZERO,
                                      CUDA_R_32F));
 
-    GaspCsr gasp_A(m, n, nnz,
-                   d_vals, d_colinds, d_rowptrs);
+    GaspCsr gasp_A(m, n, nnz, d_vals, d_colinds, d_rowptrs);
 
     if (action.compare("correctness")==0) { 
-        check_correctness<PlusTimesSemiring<float>, float, uint32_t>
+        check_correctness<PlusTimesSemiring<float>>
             (m, n, nnz, A, x, y, gasp_A, d_x, d_y);
     } else if (action.compare("benchmark")==0) {
         const float alpha = 1.0;
@@ -133,15 +148,16 @@ int main(int argc, char ** argv)
         const char * label_cusparse = "SpMV_cusparse";
 
         start_timer(label_cusparse);
+
+        /* BENCHMARK CUSPARSE */
         for (int i=0; i<n_iters; i++) {
 
-            /* BENCHMARK CUSPARSE */
             CUSPARSE_CHECK(cusparseSpMV_bufferSize(cusparseHandle,
                                                     CUSPARSE_OPERATION_NON_TRANSPOSE,
                                                     &alpha, A, x,
                                                     &beta, y,
                                                     CUDA_R_32F,
-                                                    CUSPARSE_SPMV_ALG_DEFAULT,
+                                                    CUSPARSE_SPMV_CSR_ALG1,
                                                     &buf_size));
 
             CUDA_CHECK(cudaMalloc(&buf, buf_size));
@@ -150,7 +166,7 @@ int main(int argc, char ** argv)
                                         &alpha, A, x,
                                         &beta, y,
                                         CUDA_R_32F,
-                                        CUSPARSE_SPMV_ALG_DEFAULT,
+                                        CUSPARSE_SPMV_CSR_ALG1,
                                         buf));
 
             CUDA_CHECK(cudaDeviceSynchronize());
@@ -165,19 +181,35 @@ int main(int argc, char ** argv)
         print_gflops(label_cusparse);
 
 
-        const char * label_gasp = "SpMV_gasp";
+        const char * label_gasp_warp = "SpMV_gasp_warp";
 
-        start_timer(label_gasp);
+        start_timer(label_gasp_warp);
+
         for (int i=0; i<n_iters; i++) {
-            SpMV_host<PlusTimesSemiring<float>, float, uint32_t>(gasp_A, d_x, d_y);
+            SpMV_host<SpMVWarp<TropicalSemiring<float>>>(gasp_A, d_x, d_y);
             CUDA_CHECK(cudaDeviceSynchronize());
         }
 
-        end_timer(label_gasp);
-        measure_gflops(label_gasp, 2*nnz*n_iters);
+        end_timer(label_gasp_warp);
+        measure_gflops(label_gasp_warp, 2*nnz*n_iters);
 
-        print_time(label_gasp);
-        print_gflops(label_gasp);
+        print_time(label_gasp_warp);
+        print_gflops(label_gasp_warp);
+
+        const char * label_gasp_scalar = "SpMV_gasp_scalar";
+
+        start_timer(label_gasp_scalar);
+
+        for (int i=0; i<n_iters; i++) {
+            SpMV_host<SpMVScalar<TropicalSemiring<float>>>(gasp_A, d_x, d_y);
+            CUDA_CHECK(cudaDeviceSynchronize());
+        }
+
+        end_timer(label_gasp_scalar);
+        measure_gflops(label_gasp_scalar, 2*nnz*n_iters);
+
+        print_time(label_gasp_scalar);
+        print_gflops(label_gasp_scalar);
     }
 
     CUSPARSE_CHECK(cusparseDestroySpMat(A));
