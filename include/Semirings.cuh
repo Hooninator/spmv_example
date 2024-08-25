@@ -20,5 +20,20 @@ struct PlusTimesSemiring
     }
 };
 
+template <typename D>
+struct TropicalSemiring 
+{
+
+    inline static __host__ __device__ D mult(D a, D b)
+    {
+        return a + b;
+    }
+
+    inline static __host__ __device__ D add(D a, D b)
+    {
+        return min(a, b);
+    }
+};
+
 }
 #endif

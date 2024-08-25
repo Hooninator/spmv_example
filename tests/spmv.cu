@@ -186,7 +186,7 @@ int main(int argc, char ** argv)
         start_timer(label_gasp_warp);
 
         for (int i=0; i<n_iters; i++) {
-            SpMV_host<SpMVWarp<TropicalSemiring<float>>>(gasp_A, d_x, d_y);
+            SpMV_host<SpMVWarp<PlusTimesSemiring<float>>>(gasp_A, d_x, d_y);
             CUDA_CHECK(cudaDeviceSynchronize());
         }
 
@@ -201,7 +201,7 @@ int main(int argc, char ** argv)
         start_timer(label_gasp_scalar);
 
         for (int i=0; i<n_iters; i++) {
-            SpMV_host<SpMVScalar<TropicalSemiring<float>>>(gasp_A, d_x, d_y);
+            SpMV_host<SpMVScalar<PlusTimesSemiring<float>>>(gasp_A, d_x, d_y);
             CUDA_CHECK(cudaDeviceSynchronize());
         }
 

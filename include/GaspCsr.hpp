@@ -32,6 +32,10 @@ public:
     inline size_t get_cols() const { return n; }
     inline size_t get_nnz() const { return nnz; }
 
+    inline size_t get_val_bytes() const { return sizeof(D); }
+    inline size_t get_ind_bytes() const { return sizeof(I); }
+    inline size_t get_tuple_bytes() const { return sizeof(I)*2 + sizeof(D); }
+
     inline D * get_vals() const { return d_vals; }
     inline I * get_colinds() const { return d_colinds; }
     inline I * get_rowptrs() const { return d_rowptrs; }

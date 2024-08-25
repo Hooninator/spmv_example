@@ -2,7 +2,9 @@
 #define GASP_H
 
 #include "GaspCsr.hpp"
-#include "gasp_spmv.cuh"
 #include "Semirings.cuh"
+
+#include "gasp_spmv.cuh"
+#include "gasp_spgemm.cuh"
 
 #endif

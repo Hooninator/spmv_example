@@ -20,6 +20,11 @@
 
 #include <cub/cub.cuh>
 
+#include <thrust/device_ptr.h>
+#include <thrust/reduce.h>
+#include <thrust/sort.h>
+#include <thrust/scan.h>
+
 #include "colors.h"
 
 #define CUDA_CHECK(call) {                                                 \

@@ -33,7 +33,7 @@ struct SpMVScalar {
             thread_data = SR::add(thread_data, r);
         }
 
-        y[tid] = thread_data;
+        y[tid] = SR::add(y[tid], thread_data);
     }
 
 
@@ -80,7 +80,8 @@ struct SpMVWarp {
         D result = WarpReduce(temp_storage).Sum(thread_data);
 
         if (lid==0) {
-            y[wid] = result;
+            //y[wid] = result;
+            y[wid] = SR::add(y[wid], result);
         }
 
     }
