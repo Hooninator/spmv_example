@@ -151,6 +151,10 @@ int main(int argc, char ** argv)
     GaspCsr gasp_B(n, n, nnz, d_B_vals, d_B_colinds, d_B_rowptrs);
     GaspCsr gasp_C(n, n, nnz, d_C_vals, d_C_colinds, d_C_rowptrs);
 
+    std::ofstream A_out("A.out");
+    gasp_A.dump(A_out);
+    A_out.close();
+
     const char * label_cusparse = "SpGEMM_cusparse";
 
     start_timer(label_cusparse);
@@ -166,25 +170,23 @@ int main(int argc, char ** argv)
     print_time(label_cusparse);
     print_gflops(label_cusparse);
 
+    const char * label_gasp = "SpGEMM_gasp";
 
-    SpGEMM_host<SpGEMMWarp<PlusTimesSemiring<float>>,
-                OutputTuple<float, int64_t>>(gasp_A, gasp_B);
+    start_timer(label_gasp);
+
+    for (int i=0; i<n_iters; i++) {
+        SpGEMM_ESC<SpGEMM_ESC_Warp<PlusTimesSemiring<float>>,
+                    OutputTuple<float, int64_t>>(gasp_A, gasp_B);
+    }
+
+    end_timer(label_gasp);
+    print_time(label_gasp);
 
     CUSPARSE_CHECK(cusparseDestroySpMat(A));
     CUSPARSE_CHECK(cusparseDestroySpMat(B));
     CUSPARSE_CHECK(cusparseDestroySpMat(C));
 
     CUSPARSE_CHECK(cusparseDestroy(cusparseHandle));
-
-    CUDA_CHECK(cudaFree(d_A_vals));	
-    CUDA_CHECK(cudaFree(d_B_vals));	
-    CUDA_CHECK(cudaFree(d_C_vals));	
-    CUDA_CHECK(cudaFree(d_A_colinds));
-    CUDA_CHECK(cudaFree(d_B_colinds));
-    CUDA_CHECK(cudaFree(d_C_colinds));
-    CUDA_CHECK(cudaFree(d_A_rowptrs));
-    CUDA_CHECK(cudaFree(d_B_rowptrs));
-    CUDA_CHECK(cudaFree(d_C_rowptrs));
 
     return 0;
 }

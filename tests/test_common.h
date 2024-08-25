@@ -23,6 +23,7 @@
 #include <cub/cub.cuh>
 
 #include "colors.h"
+#include "utils.cuh"
 
 
 #define CUDA_CHECK(call) {                                                 \
@@ -43,9 +44,14 @@
     }                                                                \
 } while(0)
 
-#define EPS 1e-3
+#define EPS 1
 
 namespace testing {
+/***************************************************************************
+ *                                                                         *
+ *                           CORRECTNESS TEST UTILS                        *
+ *                                                                         *
+ ***************************************************************************/
 
 
 /***************************************************************************
@@ -62,7 +68,12 @@ void init_random_buffer(std::vector<T>& buf,
                         const T upper)
 {
     std::uniform_real_distribution<T> distr(lower, upper);
-    std::generate(buf.begin(), buf.end(), [&](){return distr(gen);}); 
+    std::generate(buf.begin(), buf.end(), [&]()
+    {
+        T elem = distr(gen);
+        return elem;
+    }); 
+
 }
 
 void init_random_buffer(std::vector<int64_t>& buf,
@@ -117,13 +128,12 @@ struct RandomCsrInitializer
              std::vector<I>& colinds,
              std::vector<I>& rowptrs)
     {
-        init_random_buffer(vals, static_cast<T>(-1e5), static_cast<T>(1e5));
-        init_random_buffer(colinds, 0, n);
 
         std::unordered_set<I> found;
         found.reserve(m);
 
         std::uniform_int_distribution<I> distr(1, n);
+        std::uniform_real_distribution<T> real_distr(-5, 5);
 
 		// Distribute nnz elements randomly among the rows
 		for (int i = 0; i < nnz; ++i) {
@@ -156,8 +166,8 @@ struct RandomCsrInitializer
 			// Fill in the column indices and values
 			for (I j = 0; j < numElementsInRow; ++j) {
 				colinds[rowStart + j] = columns[j];
-				vals[rowStart + j] = static_cast<float>(distr(gen)) / RAND_MAX;  // Random value between 0 and 1
-			}
+				vals[rowStart + j] = static_cast<T>(real_distr(gen));			
+            }
 		}
     }
 

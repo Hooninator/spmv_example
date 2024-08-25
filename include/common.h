@@ -21,6 +21,7 @@
 #include <cub/cub.cuh>
 
 #include <thrust/device_ptr.h>
+#include <thrust/host_vector.h>
 #include <thrust/reduce.h>
 #include <thrust/sort.h>
 #include <thrust/scan.h>
@@ -48,6 +49,8 @@
 #define CUDA_FREE_SAFE(ptr) if (ptr!=nullptr) CUDA_CHECK(cudaFree(ptr));
 
 namespace gasp {
+
+typedef unsigned long long int ull_t;
 
 }
 #endif

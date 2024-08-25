@@ -2,6 +2,7 @@
 #define GASP_CSR_HPP
 
 #include "common.h"
+#include "utils.cuh"
 
 
 namespace gasp {
@@ -20,6 +21,16 @@ public:
         d_vals(_d_vals), d_colinds(_d_colinds),
         d_rowptrs(_d_rowptrs)
         {}
+
+    void dump(std::ofstream& ofs)
+    {
+        ofs<<"VALS:"<<std::endl;
+        utils::write_device_buffer(nnz, d_vals, ofs);
+        ofs<<"COLINDS:"<<std::endl;
+        utils::write_device_buffer(nnz, d_colinds, ofs);
+        ofs<<"ROWPTRS:"<<std::endl;
+        utils::write_device_buffer(m+1, d_rowptrs, ofs);
+    }
 
     ~GaspCsr()
     {
