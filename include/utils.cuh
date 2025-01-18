@@ -2,8 +2,10 @@
 #define UTILS_CUH
 
 #include "common.h"
+#include <thrust/device_ptr.h>
+#include <thrust/host_vector.h>
 
-namespace gasp {
+namespace spmv {
 
 namespace utils {
 
