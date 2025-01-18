@@ -91,7 +91,7 @@ int main(int argc, char ** argv)
 {
     cusparseHandle_t cusparseHandle;
     CUSPARSE_CHECK(cusparseCreate(&cusparseHandle));
-    const size_t n_iters = 20;
+    const size_t n_iters = 100;
 
     if (argc != 2)
     {
@@ -124,7 +124,7 @@ int main(int argc, char ** argv)
 
     /* Correctness check */
     std::cout<<YELLOW<<"Running correctness check"<<matname<<RESET<<std::endl;
-    //check_correctness(csr_A, d_x, d_y, A, x, y);
+    check_correctness(csr_A, d_x, d_y, A, x, y);
 
     /* Benchmarks */
     std::cout<<YELLOW<<"Running cusparse benchmark"<<matname<<RESET<<std::endl;

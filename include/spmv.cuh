@@ -14,6 +14,24 @@ __global__ void SpMV(const size_t m, const size_t n,
                     __constant__ D * d_x, D * d_y)
 {
     /**** IMPLEMENT THIS KERNEL ****/
+	const size_t tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+	if (tid>=m) return;
+
+	const I row_start = d_rowptrs[tid];
+	const I row_end = d_rowptrs[tid+1];
+
+	D thread_data = 0;
+
+#pragma unroll
+	for (I j = row_start; j < row_end; j++) 
+	{
+		const I colidx = d_colinds[j];
+		const D r = (d_vals[j] * d_x[colidx]);
+		thread_data = thread_data + r;
+	}
+
+	d_y[tid] = d_y[tid] + thread_data;
 }
 
 template <typename Matrix, typename D>

@@ -77,7 +77,7 @@ void init_dense_vec(const size_t n,
                     T ** d_vals)
 {
     std::vector<T> h_vals(n);
-    init_random_buffer(h_vals, static_cast<T>(1), static_cast<T>(1));
+    init_random_buffer(h_vals, static_cast<T>(0.5), static_cast<T>(0.5));
 
     CUDA_CHECK(cudaMalloc(d_vals, sizeof(T)*n));
     CUDA_CHECK(cudaMemcpy(*d_vals, h_vals.data(), sizeof(T)*n, cudaMemcpyHostToDevice));
